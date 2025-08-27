@@ -9,13 +9,10 @@ import sys
 import subprocess
 
 # --- Configuration ---
-# Get the top-level directory of the repo checkout.
 TOP_DIR = os.getcwd()
-# Define a unique build directory name for this project.
 BUILD_DIR_NAME = "build-jetson"
 BUILD_DIR = os.path.join(TOP_DIR, BUILD_DIR_NAME)
 
-# The custom block of text to be added to local.conf.
 LOCAL_CONF_SETTINGS = f"""
 # --- Custom settings added by jetson-hooks ---
 MACHINE = "jetson-nano-devkit"
@@ -24,8 +21,6 @@ PACKAGECONFIG:append:pn-weston = " rdp"
 # --- End of custom settings ---
 """
 
-# The specific list of layers for the Jetson build.
-# I've included meta-coda as it's part of the manifest and likely needed.
 LAYERS_TO_ADD = [
     "sources/meta-openembedded/meta-oe",
     "sources/meta-openembedded/meta-python",
@@ -68,7 +63,6 @@ def main(**kwargs):
     try:
         with open(local_conf_path, "r+") as f:
             content = f.read()
-            # Add settings only if our custom marker isn't already there.
             if "# --- Custom settings added by jetson-hooks ---" not in content:
                 f.write(LOCAL_CONF_SETTINGS)
                 print("[Jetson Hook] Custom settings appended to local.conf.")
@@ -85,7 +79,11 @@ def main(**kwargs):
         cmd = f"source {init_script} {BUILD_DIR} && bitbake-layers add-layer {layer_path}"
         run_command(cmd, cwd=TOP_DIR)
 
-    print("--- [Jetson Hook] Yocto environment setup is complete! ---")
+    print("[Jetson Hook] Pre-fetching all source code for the AI image...")
+    fetch_cmd = f"source {init_script} {BUILD_DIR} && bitbake core-image-coda-ai --runonly=fetch"
+    run_command(fetch_cmd, cwd=TOP_DIR)
+
+    print("--- [Jetson Hook] Yocto environment setup and source fetching is complete! ---")
     print(f"Your build directory is '{BUILD_DIR_NAME}'.")
     print(f"To use it, run: source sources/poky/oe-init-build-env {BUILD_DIR_NAME}")
 
